@@ -13,5 +13,6 @@
     <module>bigmining-mapreduce</module>
     <module>bigmining-giraph</module>
     <module>bigmining-hama</module>
+    <module>bigmining-storm</module>
   </modules>
 </project>
