@@ -7,9 +7,7 @@
     <artifactId>bigmining-parent</artifactId>
     <version>0.1-SNAPSHOT</version>
   </parent>
-  <groupId>edu.fiu.cs.bigmining</groupId>
   <artifactId>bigmining-giraph</artifactId>
-  <version>0.1-SNAPSHOT</version>
   <name>bigmining-giraph</name>
   <url>http://maven.apache.org</url>
   <dependencies>
