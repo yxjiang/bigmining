@@ -2,6 +2,6 @@
 .settings
 .project
 .classpath
+*/.project
 */.classpath
 */.settings
-*/.project
