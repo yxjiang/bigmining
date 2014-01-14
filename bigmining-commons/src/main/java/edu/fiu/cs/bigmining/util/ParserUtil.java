@@ -36,6 +36,20 @@ public class ParserUtil {
     }
     return null;
   }
+  
+  /**
+   * Parse and return the long parameter.
+   * @param cli
+   * @param option
+   * @return
+   */
+  public static Long getLong(CommandLine cli, Option option) {
+    Object val = cli.getValue(option);
+    if (val != null) {
+      return Long.parseLong(val.toString());
+    }
+    return null;
+  }
 
   /**
    * Parse and return the double parameter.
@@ -58,7 +72,6 @@ public class ParserUtil {
    * @return
    */
   public static boolean getBoolean(CommandLine cli, Option option) {
-    Object val = cli.getValue(option);
-    return val == null? false : true;
+    return cli.hasOption(option);
   }
 }
