@@ -17,6 +17,7 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.mahout.math.VectorWritable;
 
 import edu.fiu.cs.bigmining.util.ParserUtil;
@@ -140,6 +141,7 @@ public class RandomVectorGenerator extends Configured implements Tool {
     job.setOutputKeyClass(LongWritable.class);
     job.setOutputValueClass(VectorWritable.class);
 
+    job.setMapperClass(RandomVectorGeneratorMapper.class);
     job.setNumReduceTasks(0);
 
     FileOutputFormat.setOutputPath(job, outputPath);
@@ -147,6 +149,11 @@ public class RandomVectorGenerator extends Configured implements Tool {
     job.waitForCompletion(true);
 
     return 0;
+  }
+  
+  public static void main(String[] args) throws Exception {
+    int exitCode = ToolRunner.run(new RandomVectorGenerator(), args);
+    System.exit(exitCode);
   }
 
 }
