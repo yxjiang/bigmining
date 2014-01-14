@@ -7,8 +7,8 @@
     <artifactId>bigmining-parent</artifactId>
     <version>0.1-SNAPSHOT</version>
   </parent>
-  <artifactId>bigmining-giraph</artifactId>
-  <name>bigmining-giraph</name>
+  <artifactId>bigmining-commons</artifactId>
+  <name>bigmining-commons</name>
   <url>http://maven.apache.org</url>
   <dependencies>
     <dependency>
@@ -18,9 +18,19 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-    	<groupId>edu.fiu.cs.bigmining</groupId>
-    	<artifactId>bigmining-commons</artifactId>
-    	<version>0.1-SNAPSHOT</version>
+    	<groupId>org.apache.hadoop</groupId>
+    	<artifactId>hadoop-common</artifactId>
+    	<version>2.2.0</version>
+    </dependency>
+    <dependency>
+    	<groupId>org.apache.hadoop</groupId>
+    	<artifactId>hadoop-hdfs</artifactId>
+    	<version>2.2.0</version>
+    </dependency>
+    <dependency>
+    	<groupId>org.apache.mahout</groupId>
+    	<artifactId>mahout-core</artifactId>
+    	<version>0.8</version>
     </dependency>
   </dependencies>
 </project>
