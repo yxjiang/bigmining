@@ -17,10 +17,5 @@
       <version>3.8.1</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-    	<groupId>edu.fiu.cs.bigmining</groupId>
-    	<artifactId>bigmining-commons</artifactId>
-    	<version>0.1-SNAPSHOT</version>
-    </dependency>
   </dependencies>
 </project>

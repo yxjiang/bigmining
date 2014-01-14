@@ -11,9 +11,9 @@
 
   <modules>
     <module>bigmining-commons</module>
+    <module>bigmining-storm</module>
+    <module>bigmining-hama</module>
     <module>bigmining-mapreduce</module>
     <module>bigmining-giraph</module>
-    <module>bigmining-hama</module>
-    <module>bigmining-storm</module>
   </modules>
 </project>
