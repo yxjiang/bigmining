@@ -31,13 +31,16 @@ public class LinearRegressionMapper extends
     this.featureDimension = conf.getInt("feature.dimension", 1);
     this.learningRate = Double.parseDouble(conf.get("learning.rate") == null ? conf
         .get("learning.rate") : "0.1");
+    String modelPath = conf.get("model.path");
 
     this.biasUpdate = 0;
     this.weightUpdates = new double[this.featureDimension];
 
-    // read the metaData
-    Map<String, String> metaData = new HashMap<String, String>();
-    model = new LinearRegressionModel(featureDimension, metaData);
+    try {
+      model = new LinearRegressionModel(modelPath, conf);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override

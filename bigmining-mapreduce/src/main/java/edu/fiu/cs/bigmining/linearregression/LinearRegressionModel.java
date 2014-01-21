@@ -3,12 +3,21 @@ package edu.fiu.cs.bigmining.linearregression;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.mahout.math.Vector;
+
+import com.google.common.io.Closeables;
 
 public class LinearRegressionModel implements Writable {
   
@@ -22,6 +31,10 @@ public class LinearRegressionModel implements Writable {
     this.bias = 0;
     this.features = new double[dimension];
     this.modelMetadata = new HashMap<String, String>();
+  }
+  
+  public LinearRegressionModel(String modelPath, Configuration conf) throws IOException {
+    this.readFromFile(modelPath, conf);
   }
   
   public double getWeight(int index) {
@@ -38,6 +51,13 @@ public class LinearRegressionModel implements Writable {
   
   public void setBiasWeight(double weight) { 
     this.bias = weight;
+  }
+  
+  public void updateWeights(Vector updates) {
+    this.bias -= updates.get(0);
+    for (int i = 0; i < features.length; ++i) {
+      this.features[i] = updates.get(i + 1);
+    }
   }
   
   /**
@@ -77,6 +97,46 @@ public class LinearRegressionModel implements Writable {
     this.features = new double[in.readInt()];
     for (int i = 0; i < features.length; ++i) {
       this.features[i] = in.readDouble();
+    }
+  }
+  
+  /**
+   * Write the model to specified location.
+   * @param modelPath
+   * @param conf
+   * @throws IOException
+   */
+  public void writeToFile(String modelPath, Configuration conf) throws IOException {
+    FSDataOutputStream is = null;
+    try {
+      URI uri = new URI(modelPath);
+      FileSystem fs = FileSystem.get(uri, conf);
+      is = fs.create(new Path(modelPath), true);
+      this.write(is);
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+    }
+
+    Closeables.close(is, false);
+  }
+  
+  /**
+   * Read the model from specified location.
+   * @param modelPath
+   * @param conf
+   * @throws IOException
+   */
+  public void readFromFile(String modelPath, Configuration conf) throws IOException {
+    FSDataInputStream is = null;
+    try {
+      URI uri = new URI(modelPath);
+      FileSystem fs = FileSystem.get(uri, conf);
+      is = new FSDataInputStream(fs.open(new Path(modelPath)));
+      this.readFields(is);
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+    } finally {
+      Closeables.close(is, false);
     }
   }
 
