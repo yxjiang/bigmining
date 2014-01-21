@@ -1,5 +1,9 @@
 package edu.fiu.cs.bigmining.util;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.cli2.CommandLine;
 import org.apache.commons.cli2.Option;
 
@@ -8,9 +12,10 @@ import org.apache.commons.cli2.Option;
  * 
  */
 public class ParserUtil {
-  
+
   /**
    * Parse and return the string parameter.
+   * 
    * @param cli
    * @param option
    * @return
@@ -22,9 +27,10 @@ public class ParserUtil {
     }
     return null;
   }
-  
+
   /**
    * Parse and return the integer parameter.
+   * 
    * @param cli
    * @param option
    * @return
@@ -36,9 +42,10 @@ public class ParserUtil {
     }
     return null;
   }
-  
+
   /**
    * Parse and return the long parameter.
+   * 
    * @param cli
    * @param option
    * @return
@@ -53,6 +60,7 @@ public class ParserUtil {
 
   /**
    * Parse and return the double parameter.
+   * 
    * @param cli
    * @param option
    * @return
@@ -64,9 +72,11 @@ public class ParserUtil {
     }
     return null;
   }
-  
+
   /**
-   * Parse and return the boolean parameter. If the parameter is set, it is true, otherwise it is false.
+   * Parse and return the boolean parameter. If the parameter is set, it is
+   * true, otherwise it is false.
+   * 
    * @param cli
    * @param option
    * @return
@@ -74,4 +84,28 @@ public class ParserUtil {
   public static boolean getBoolean(CommandLine cli, Option option) {
     return cli.hasOption(option);
   }
+
+  /**
+   * Parse and return the map parameter. If the parameter is set, the map is
+   * filled, otherwise return an empty map.
+   * 
+   * @param cli
+   * @param option
+   * @param separator   the separator that splits the key and value.
+   * @return
+   */
+  public static Map<String, String> getMap(CommandLine cli, Option option, String separator) {
+    Map<String, String> map = new HashMap<String, String>();
+    List list = cli.getValues(option);
+    if (list == null) {
+      return map;
+    }
+    for (Object obj : list) {
+      String[] pair = obj.toString().split("=");
+      map.put(pair[0], pair[1]);
+    }
+    
+    return map;
+  }
+
 }
