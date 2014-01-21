@@ -96,7 +96,7 @@ public class ParserUtil {
    */
   public static Map<String, String> getMap(CommandLine cli, Option option, String separator) {
     Map<String, String> map = new HashMap<String, String>();
-    List list = cli.getValues(option);
+    List<?> list = cli.getValues(option);
     if (list == null) {
       return map;
     }
