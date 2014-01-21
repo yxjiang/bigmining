@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.mahout.math.Vector;
 
 public class LinearRegressionModel implements Writable {
   
@@ -37,6 +38,19 @@ public class LinearRegressionModel implements Writable {
   
   public void setBiasWeight(double weight) { 
     this.bias = weight;
+  }
+  
+  /**
+   * Evaluate the y = w^T x
+   * @param values
+   * @return
+   */
+  public double predict(Vector values) {
+    double value = bias;
+    for (int i = 0; i < features.length; ++i) {
+      value += features[i] * values.get(i);
+    }
+    return value;
   }
   
   public void write(DataOutput out) throws IOException {
