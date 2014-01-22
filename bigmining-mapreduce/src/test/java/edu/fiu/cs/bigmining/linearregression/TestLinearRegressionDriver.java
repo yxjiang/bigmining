@@ -33,29 +33,18 @@ public class TestLinearRegressionDriver extends TestBase {
 
   private static final Logger log = LoggerFactory.getLogger(TestLinearRegressionDriver.class);
 
-  private Configuration conf;
-  
   private int featureDimension = 15;
   private String rawDataStr = "../bigmining-commons/src/test/resources/raw-linear-regression.txt";
   private String modelPathStr = String.format("/tmp/%s", "linear-regression-model.model");
   private String trainingDataStr = String.format("/tmp/%s", "linear-regression-training.data");
-  private FileSystem fs;
-
-  @Before
-  /**
-   * Write data to specified location.
-   */
-  public void setup() throws IOException {
-    conf = new Configuration();
+  
+  @Override
+  public void extraSetup() {
   }
 
   private void generateTrainingData() throws IOException {
     log.info("Generate training data...");
-    try {
-      fs = FileSystem.get(conf);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    
 
     Path trainingDataPath = new Path(trainingDataStr);
 
@@ -100,7 +89,7 @@ public class TestLinearRegressionDriver extends TestBase {
   public void testLinearRegressionDriver() throws Exception {
     this.generateTrainingData();
 
-    String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension, "-itr", "10" };
+    String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension, "-itr", "2", "-l", "0.01" };
     LinearRegressionDriver.main(args);
     
     this.evaluate();
@@ -136,7 +125,6 @@ public class TestLinearRegressionDriver extends TestBase {
     log.info("End of evaluation.");
   }
 
-  @After
   /**
    * Delete temporal data.
    */
