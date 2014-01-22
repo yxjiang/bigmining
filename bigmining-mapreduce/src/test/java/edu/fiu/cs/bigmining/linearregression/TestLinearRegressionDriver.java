@@ -31,7 +31,7 @@ public class TestLinearRegressionDriver extends TestBase {
   private String rawDataStr = "../bigmining-commons/src/test/resources/raw-linear-regression.txt";
   private String modelPathStr = String.format("/tmp/%s", "linear-regression-model.model");
   private String trainingDataStr = String.format("/tmp/%s", "linear-regression-training.data");
-  
+
   @Override
   public void extraSetup() {
   }
@@ -62,8 +62,8 @@ public class TestLinearRegressionDriver extends TestBase {
     Closeables.close(br, true);
 
     List<double[]> normalizedData = Normalizer.zeroOneNormalization(unnormalizedData);
-    
-    printData(normalizedData);
+
+//    printData(normalizedData);
 
     SequenceFile.Writer out = new SequenceFile.Writer(fs, conf, trainingDataPath,
         NullWritable.class, VectorWritable.class);
@@ -85,16 +85,17 @@ public class TestLinearRegressionDriver extends TestBase {
       System.out.println(Arrays.toString(arr));
     }
   }
-  
+
   @Test
   public void testLinearRegressionDriver() throws Exception {
     this.generateTrainingData();
 
-    String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension, "-itr", "10", "-l", "0.01" };
+    String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension,
+        "-itr", "10", "-l", "0.1", "-r", "0.01" };
     LinearRegressionDriver.main(args);
-    
+
   }
-  
+
   /**
    * Delete temporal data.
    */

@@ -34,13 +34,14 @@ public class LinearRegressionDriver extends Configured implements Tool {
 
   private static final Logger log = LoggerFactory.getLogger(LinearRegressionDriver.class);
 
-  private static final double EPSILON = 0.01;
+  private static final double EPSILON = 0.001;
 
   private String trainingDataPath;
   private String modelPath;
   private int dimension;
   private int maxIterations;
   private double learningRate;
+  private double regularizationRate;
   private Map<String, String> metaData;
 
   private LinearRegressionModel model;
@@ -95,6 +96,14 @@ public class LinearRegressionDriver extends Configured implements Tool {
             argumentBuilder.withName("learning-rate").withMinimum(1).withMaximum(1)
                 .withDefault(0.1).create()).withRequired(false).create();
 
+    Option regularizationRateOption = optionBuilder
+        .withShortName("r")
+        .withLongName("regularization-rate")
+        .withDescription("the regularization rate for training")
+        .withArgument(
+            argumentBuilder.withName("regularization-rate").withMinimum(1).withMaximum(1)
+                .withDefault(0.01).create()).withRequired(false).create();
+
     // the key value pairs of meta data
     Option metaDataOption = optionBuilder.withShortName("meta").withLongName("metadata")
         .withDescription("the key=value pairs")
@@ -102,7 +111,8 @@ public class LinearRegressionDriver extends Configured implements Tool {
 
     Group normalGroup = groupBuilder.withOption(trainingDataPathOption).withOption(modelPathOption)
         .withOption(modelDimensionOption).withOption(iterationsOption)
-        .withOption(learningRateOption).withOption(metaDataOption).create();
+        .withOption(learningRateOption).withOption(regularizationRateOption)
+        .withOption(metaDataOption).create();
 
     Parser parser = new Parser();
     parser.setGroup(normalGroup);
@@ -119,7 +129,9 @@ public class LinearRegressionDriver extends Configured implements Tool {
     this.dimension = ParserUtil.getInteger(cli, modelDimensionOption);
     this.maxIterations = ParserUtil.getInteger(cli, iterationsOption);
     this.learningRate = ParserUtil.getDouble(cli, learningRateOption);
-    this.learningRate = Math.max(0.0001, learningRate);
+    this.learningRate = Math.max(EPSILON, learningRate);
+    this.regularizationRate = ParserUtil.getDouble(cli, regularizationRateOption);
+    this.regularizationRate = Math.max(EPSILON, regularizationRate);
     this.metaData = ParserUtil.getMap(cli, metaDataOption, "=");
 
     return true;
@@ -135,6 +147,9 @@ public class LinearRegressionDriver extends Configured implements Tool {
     Configuration conf = getConf();
     conf.set("model.path", this.modelPath);
     conf.setInt("feature.dimension", this.dimension);
+    conf.set("learning.rate", "" + this.learningRate);
+    conf.set("regularization.rate", "" + this.regularizationRate);
+    
     initializeModel();
 
     Path trainingDataPath = new Path(this.trainingDataPath);
@@ -155,7 +170,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
       FileInputFormat.addInputPath(job, trainingDataPath);
       job.setMapOutputKeyClass(NullWritable.class);
       job.setMapOutputValueClass(PairWritable.class);
-      
+
       job.setInputFormatClass(SequenceFileInputFormat.class);
       job.setOutputKeyClass(NullWritable.class);
       job.setOutputValueClass(NullWritable.class);
@@ -164,7 +179,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
 
       job.waitForCompletion(true);
       model = new LinearRegressionModel(this.modelPath, conf);
-    } while (curIteration < maxIterations || !prevModel.isIdentical(model, EPSILON));
+    } while (curIteration < maxIterations && !prevModel.isIdentical(model, EPSILON));
 
     return 0;
   }

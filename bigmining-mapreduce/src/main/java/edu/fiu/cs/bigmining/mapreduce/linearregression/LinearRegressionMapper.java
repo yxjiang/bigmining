@@ -10,7 +10,6 @@ import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
-
 /**
  * The Mapper for linear regression. Two kinds of keys (boolean) are generated,
  * the 'FALSE' key denotes the count, the 'TRUE' key denotes the aggregated
@@ -25,6 +24,8 @@ public class LinearRegressionMapper extends
   private int featureDimension;
 
   private double learningRate;
+  private double regularizationRate;
+
   private double biasUpdate;
   private double[] weightUpdates;
 
@@ -36,7 +37,10 @@ public class LinearRegressionMapper extends
     this.count = 0;
     this.featureDimension = conf.getInt("feature.dimension", 0);
     this.learningRate = Double.parseDouble(conf.get("learning.rate") != null ? conf
-        .get("learning.rate") : "0.1");
+        .get("learning.rate") : "0.01");
+    this.regularizationRate = Double.parseDouble(conf.get("learning.rate") != null ? conf
+        .get("learning.rate") : "0.01");
+
     String modelPath = conf.get("model.path");
 
     this.biasUpdate = 0;
@@ -60,11 +64,12 @@ public class LinearRegressionMapper extends
     double actual = model.predict(vec).get(0);
 
     // update bias
-    this.biasUpdate -= learningRate * (actual - expected);
+    this.biasUpdate -= learningRate * (actual - expected) + regularizationRate * model.getBias();
 
     // update each weight
     for (int i = 0; i < featureDimension; ++i) {
-      this.weightUpdates[i] -= learningRate * (actual - expected) * vec.get(i);
+      this.weightUpdates[i] -= learningRate * (actual - expected) * vec.get(i) 
+          + regularizationRate * model.getFeatureWeight(i); // regularization term
     }
   }
 
@@ -80,7 +85,8 @@ public class LinearRegressionMapper extends
       vec.set(i + 1, this.weightUpdates[i]);
     }
 
-    context.write(NullWritable.get(), new PairWritable(new LongWritable(count), new VectorWritable(vec)));
+    context.write(NullWritable.get(), new PairWritable(new LongWritable(count), new VectorWritable(
+        vec)));
   }
 
 }
