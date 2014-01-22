@@ -1,19 +1,18 @@
 package edu.fiu.cs.bigmining.linearregression;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
 public class LinearRegressionReducer extends
-    Reducer<LongWritable, VectorWritable, NullWritable, NullWritable> {
+    Reducer<NullWritable, VectorWritable, NullWritable, NullWritable> {
   
   private String modelPath;
   
@@ -31,7 +30,7 @@ public class LinearRegressionReducer extends
     }
   }
   
-  public void reduce(LongWritable key, Iterable<VectorWritable> vecList, Context context) {
+  public void reduce(NullWritable key, Iterable<VectorWritable> vecList, Context context) {
     int count = 0;
     
     Vector globalUpdates = null;
@@ -56,6 +55,11 @@ public class LinearRegressionReducer extends
    */
   public void cleanup(Context context) {
     try {
+      FileSystem fs = FileSystem.get(context.getConfiguration());
+      Path path = new Path(modelPath);
+      if (fs.exists(path)) {
+        fs.delete(path, true);
+      }
       model.writeToFile(modelPath, context.getConfiguration());
     } catch (IOException e) {
       e.printStackTrace();

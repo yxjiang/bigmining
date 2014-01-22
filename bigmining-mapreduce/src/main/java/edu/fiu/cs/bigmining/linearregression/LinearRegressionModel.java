@@ -27,6 +27,18 @@ public class LinearRegressionModel implements Writable {
   
   private double[] features;
   
+  public static LinearRegressionModel getCopy(LinearRegressionModel model) {
+    double[] features = model.getFeatureWeights();
+    LinearRegressionModel copy = new LinearRegressionModel(features.length, model.getMetadata());
+    
+    copy.setBiasWeight(model.getBias());
+    for (int i = 0; i < features.length; ++i) {
+      copy.setWeight(i, features[i]);
+    }
+    
+    return copy;
+  }
+  
   public LinearRegressionModel(int dimension, Map<String, String> modelMetadata) {
     this.bias = 0;
     this.features = new double[dimension];
@@ -37,12 +49,16 @@ public class LinearRegressionModel implements Writable {
     this.readFromFile(modelPath, conf);
   }
   
-  public double getWeight(int index) {
+  public double getFeatureWeight(int index) {
     return this.features[index];
   }
   
   public double getBias() {
     return this.bias;
+  }
+  
+  public double[] getFeatureWeights() {
+    return this.features;
   }
   
   public void setWeight(int index, double weight) {
@@ -56,8 +72,12 @@ public class LinearRegressionModel implements Writable {
   public void updateWeights(Vector updates) {
     this.bias -= updates.get(0);
     for (int i = 0; i < features.length; ++i) {
-      this.features[i] = updates.get(i + 1);
+      this.features[i] -= updates.get(i + 1);
     }
+  }
+  
+  public Map<String, String> getMetadata() {
+    return this.modelMetadata;
   }
   
   /**
@@ -107,17 +127,17 @@ public class LinearRegressionModel implements Writable {
    * @throws IOException
    */
   public void writeToFile(String modelPath, Configuration conf) throws IOException {
-    FSDataOutputStream is = null;
+    FSDataOutputStream os = null;
     try {
       URI uri = new URI(modelPath);
       FileSystem fs = FileSystem.get(uri, conf);
-      is = fs.create(new Path(modelPath), true);
-      this.write(is);
+      os = fs.create(new Path(modelPath), true);
+      this.write(os);
     } catch (URISyntaxException e) {
       e.printStackTrace();
     }
 
-    Closeables.close(is, false);
+    Closeables.close(os, false);
   }
   
   /**
@@ -138,6 +158,27 @@ public class LinearRegressionModel implements Writable {
     } finally {
       Closeables.close(is, false);
     }
+  }
+  
+  /**
+   * Check whether two linear regression model are identical.
+   * @param otherModel
+   * @param epsilon
+   * @return
+   */
+  public boolean checkIdentical(LinearRegressionModel otherModel, double epsilon) {
+    double[] otherFeatures = otherModel.features;
+    if (features.length != otherFeatures.length) {
+      return false;
+    }
+    
+    for (int i = 0; i < features.length; ++i) {
+      if (Math.abs(features[i] - otherFeatures[i]) > epsilon) {
+        return false;
+      }
+    }
+    
+    return Math.abs(bias - otherModel.bias) <= epsilon;
   }
 
 }
