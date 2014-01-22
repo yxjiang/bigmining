@@ -3,9 +3,7 @@ package edu.fiu.cs.bigmining.linearregression;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -26,6 +24,8 @@ import com.google.common.io.Closeables;
 
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionDriver;
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
+import edu.fiu.cs.bigmining.math.ErrorMeasure;
+import edu.fiu.cs.bigmining.math.RMSE;
 import edu.fiu.cs.bigmining.util.Normalizer;
 import edu.fiu.cs.bigmining.util.TestBase;
 
@@ -115,6 +115,23 @@ public class TestLinearRegressionDriver extends TestBase {
     
     LinearRegressionModel model = new LinearRegressionModel(modelPathStr, conf);
     
+    Path path = new Path(trainingDataStr);
+    SequenceFile.Reader reader = new SequenceFile.Reader(fs, path, conf);
+    
+    NullWritable key = NullWritable.get();
+    VectorWritable val = new VectorWritable();
+    
+    ErrorMeasure rmse = new RMSE();
+    
+    while (reader.next(key, val)) {
+      Vector instance = val.get();
+      Vector label = model.predict(instance);
+      rmse.accumulate(instance.getQuick(instance.size() - 1), label.get(0));
+    }
+    
+    System.out.printf("RMSE error: %f\n", rmse.getError());
+    
+    Closeables.close(reader, true);
     
     log.info("End of evaluation.");
   }
