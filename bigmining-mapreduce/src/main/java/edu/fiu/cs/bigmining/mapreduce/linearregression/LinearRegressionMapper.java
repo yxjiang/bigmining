@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.linearregression;
 
 import java.io.IOException;
 
@@ -49,7 +49,7 @@ public class LinearRegressionMapper extends
     ++count;
     Vector vec = value.get();
     double expected = vec.get(featureDimension);
-    double actual = model.predict(vec);
+    double actual = model.predict(vec).get(0);
 
     // update bias
     this.biasUpdate -= learningRate * (actual - expected);

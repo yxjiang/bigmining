@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.linearregression;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -15,84 +15,90 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 
 import com.google.common.io.Closeables;
 
-public class LinearRegressionModel implements Writable {
-  
+import edu.fiu.cs.bigmining.mapreduce.PredictiveModel;
+
+public class LinearRegressionModel extends PredictiveModel implements Writable {
+
   private Map<String, String> modelMetadata;
-  
+
   private double bias;
-  
+
   private double[] features;
-  
+
   public static LinearRegressionModel getCopy(LinearRegressionModel model) {
     double[] features = model.getFeatureWeights();
     LinearRegressionModel copy = new LinearRegressionModel(features.length, model.getMetadata());
-    
+
     copy.setBiasWeight(model.getBias());
     for (int i = 0; i < features.length; ++i) {
       copy.setWeight(i, features[i]);
     }
-    
+
     return copy;
   }
-  
+
   public LinearRegressionModel(int dimension, Map<String, String> modelMetadata) {
     this.bias = 0;
     this.features = new double[dimension];
     this.modelMetadata = new HashMap<String, String>();
   }
-  
+
   public LinearRegressionModel(String modelPath, Configuration conf) throws IOException {
     this.readFromFile(modelPath, conf);
   }
-  
+
   public double getFeatureWeight(int index) {
     return this.features[index];
   }
-  
+
   public double getBias() {
     return this.bias;
   }
-  
+
   public double[] getFeatureWeights() {
     return this.features;
   }
-  
+
   public void setWeight(int index, double weight) {
     this.features[index] = weight;
   }
-  
-  public void setBiasWeight(double weight) { 
+
+  public void setBiasWeight(double weight) {
     this.bias = weight;
   }
-  
+
   public void updateWeights(Vector updates) {
     this.bias -= updates.get(0);
     for (int i = 0; i < features.length; ++i) {
       this.features[i] -= updates.get(i + 1);
     }
   }
-  
+
   public Map<String, String> getMetadata() {
     return this.modelMetadata;
   }
-  
+
   /**
    * Evaluate the y = w^T x
+   * 
    * @param values
    * @return
    */
-  public double predict(Vector values) {
+  @Override
+  public Vector predict(Vector values) {
     double value = bias;
     for (int i = 0; i < features.length; ++i) {
       value += features[i] * values.get(i);
     }
-    return value;
+    double[] result = new double[] { value };
+    return new DenseVector(result);
   }
-  
+
   public void write(DataOutput out) throws IOException {
     int metaDataSize = this.modelMetadata.size();
     out.writeInt(metaDataSize);
@@ -119,9 +125,10 @@ public class LinearRegressionModel implements Writable {
       this.features[i] = in.readDouble();
     }
   }
-  
+
   /**
    * Write the model to specified location.
+   * 
    * @param modelPath
    * @param conf
    * @throws IOException
@@ -139,9 +146,10 @@ public class LinearRegressionModel implements Writable {
 
     Closeables.close(os, false);
   }
-  
+
   /**
    * Read the model from specified location.
+   * 
    * @param modelPath
    * @param conf
    * @throws IOException
@@ -159,9 +167,10 @@ public class LinearRegressionModel implements Writable {
       Closeables.close(is, false);
     }
   }
-  
+
   /**
    * Check whether two linear regression model are identical.
+   * 
    * @param otherModel
    * @param epsilon
    * @return
@@ -171,13 +180,13 @@ public class LinearRegressionModel implements Writable {
     if (features.length != otherFeatures.length) {
       return false;
     }
-    
+
     for (int i = 0; i < features.length; ++i) {
       if (Math.abs(features[i] - otherFeatures[i]) > epsilon) {
         return false;
       }
     }
-    
+
     return Math.abs(bias - otherModel.bias) <= epsilon;
   }
 

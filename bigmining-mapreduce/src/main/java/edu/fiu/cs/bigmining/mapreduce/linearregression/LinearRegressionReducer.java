@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.linearregression;
 
 import java.io.IOException;
 import java.util.Iterator;
