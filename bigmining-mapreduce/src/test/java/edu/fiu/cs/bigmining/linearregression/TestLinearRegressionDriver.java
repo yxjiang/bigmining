@@ -5,16 +5,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.mahout.math.Arrays;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,9 +20,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionDriver;
-import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
-import edu.fiu.cs.bigmining.math.ErrorMeasure;
-import edu.fiu.cs.bigmining.math.RMSE;
 import edu.fiu.cs.bigmining.util.Normalizer;
 import edu.fiu.cs.bigmining.util.TestBase;
 
@@ -44,7 +38,6 @@ public class TestLinearRegressionDriver extends TestBase {
 
   private void generateTrainingData() throws IOException {
     log.info("Generate training data...");
-    
 
     Path trainingDataPath = new Path(trainingDataStr);
 
@@ -69,6 +62,8 @@ public class TestLinearRegressionDriver extends TestBase {
     Closeables.close(br, true);
 
     List<double[]> normalizedData = Normalizer.zeroOneNormalization(unnormalizedData);
+    
+    printData(normalizedData);
 
     SequenceFile.Writer out = new SequenceFile.Writer(fs, conf, trainingDataPath,
         NullWritable.class, VectorWritable.class);
@@ -85,46 +80,21 @@ public class TestLinearRegressionDriver extends TestBase {
     log.info("Finished generating data.");
   }
 
+  private void printData(List<double[]> data) {
+    for (double[] arr : data) {
+      System.out.println(Arrays.toString(arr));
+    }
+  }
+  
   @Test
   public void testLinearRegressionDriver() throws Exception {
     this.generateTrainingData();
 
-    String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension, "-itr", "2", "-l", "0.01" };
+    String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension, "-itr", "10", "-l", "0.01" };
     LinearRegressionDriver.main(args);
     
-    this.evaluate();
   }
   
-  /**
-   * Evaluate the performance of linear regression.
-   * @throws IOException 
-   */
-  private void evaluate() throws IOException {
-    log.info("Begin to evaluate the model...");
-    
-    LinearRegressionModel model = new LinearRegressionModel(modelPathStr, conf);
-    
-    Path path = new Path(trainingDataStr);
-    SequenceFile.Reader reader = new SequenceFile.Reader(fs, path, conf);
-    
-    NullWritable key = NullWritable.get();
-    VectorWritable val = new VectorWritable();
-    
-    ErrorMeasure rmse = new RMSE();
-    
-    while (reader.next(key, val)) {
-      Vector instance = val.get();
-      Vector label = model.predict(instance);
-      rmse.accumulate(instance.getQuick(instance.size() - 1), label.get(0));
-    }
-    
-    System.out.printf("RMSE error: %f\n", rmse.getError());
-    
-    Closeables.close(reader, true);
-    
-    log.info("End of evaluation.");
-  }
-
   /**
    * Delete temporal data.
    */

@@ -2,7 +2,7 @@ package edu.fiu.cs.bigmining.math;
 
 public class RMSE extends ErrorMeasure {
   
-  private int count;
+  private int count = 0;
 
   @Override
   public void accumulate(double target, double actual) {

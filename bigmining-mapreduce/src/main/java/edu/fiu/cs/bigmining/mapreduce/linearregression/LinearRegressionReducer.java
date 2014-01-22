@@ -9,10 +9,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.mahout.math.Vector;
-import org.apache.mahout.math.VectorWritable;
+
 
 public class LinearRegressionReducer extends
-    Reducer<NullWritable, VectorWritable, NullWritable, NullWritable> {
+    Reducer<NullWritable, PairWritable, NullWritable, NullWritable> {
   
   private String modelPath;
   
@@ -30,24 +30,24 @@ public class LinearRegressionReducer extends
     }
   }
   
-  public void reduce(NullWritable key, Iterable<VectorWritable> vecList, Context context) {
-    int count = 0;
+  public void reduce(NullWritable key, Iterable<PairWritable> vecList, Context context) {
+    long count = 0;
     
     Vector globalUpdates = null;
-    Iterator<VectorWritable> itr = vecList.iterator();
+    Iterator<PairWritable> itr = vecList.iterator();
     
     while (itr.hasNext()) {
+      PairWritable pair = itr.next();
       if (globalUpdates == null) {
-        globalUpdates = itr.next().get();
+        globalUpdates = pair.getValue().get();
       }
       else {
-        globalUpdates.plus(itr.next().get());
+        globalUpdates.plus(pair.getValue().get());
       }
-      ++count;
+      count += pair.getKey().get();
     }
     
-    globalUpdates.divide(count);
-    model.updateWeights(globalUpdates);
+    model.updateAllWeights(globalUpdates.divide(count));
   }
   
   /**

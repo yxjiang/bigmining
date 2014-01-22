@@ -3,14 +3,22 @@ package edu.fiu.cs.bigmining.mapreduce.linearregression;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
+
+/**
+ * The Mapper for linear regression. Two kinds of keys (boolean) are generated,
+ * the 'FALSE' key denotes the count, the 'TRUE' key denotes the aggregated
+ * vector.
+ * 
+ */
 public class LinearRegressionMapper extends
-    Mapper<NullWritable, VectorWritable, NullWritable, VectorWritable> {
+    Mapper<NullWritable, VectorWritable, NullWritable, PairWritable> {
 
   /* a sparse vector contains the weight updates */
   private long count;
@@ -34,7 +42,7 @@ public class LinearRegressionMapper extends
     this.biasUpdate = 0;
     this.weightUpdates = new double[this.featureDimension];
 
-    try {
+    try { // load the model into memory
       model = new LinearRegressionModel(modelPath, conf);
     } catch (IOException e) {
       e.printStackTrace();
@@ -61,18 +69,18 @@ public class LinearRegressionMapper extends
   }
 
   /**
-   * Write local updates to reducer.
-   * Local update: \delta w = learningRate * \frac{1}{count} \sigma_{count} (y - t) * x
+   * Write local updates to reducer. Local update: \delta w = learningRate *
+   * \frac{1}{count} \sigma_{count} (y - t) * x
    */
   public void cleanup(Context context) throws IOException, InterruptedException {
+    // write the number of counts first
     Vector vec = new DenseVector(1 + this.featureDimension);
     vec.set(0, this.biasUpdate);
     for (int i = 0; i < featureDimension; ++i) {
       vec.set(i + 1, this.weightUpdates[i]);
     }
 
-    vec.divide(count);
-    context.write(NullWritable.get(), new VectorWritable(vec));
+    context.write(NullWritable.get(), new PairWritable(new LongWritable(count), new VectorWritable(vec)));
   }
 
 }

@@ -21,7 +21,6 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.mahout.math.VectorWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +39,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
   private String trainingDataPath;
   private String modelPath;
   private int dimension;
-  private int iterations;
+  private int maxIterations;
   private double learningRate;
   private Map<String, String> metaData;
 
@@ -53,7 +52,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
    * @throws IOException
    */
   private void initializeModel() throws IOException {
-    model = new LinearRegressionModel(dimension, metaData);
+    model = LinearRegressionModel.initializeModel(dimension, metaData);
     model.writeToFile(modelPath, getConf());
   }
 
@@ -118,7 +117,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
     this.trainingDataPath = ParserUtil.getString(cli, trainingDataPathOption);
     this.modelPath = ParserUtil.getString(cli, modelPathOption);
     this.dimension = ParserUtil.getInteger(cli, modelDimensionOption);
-    this.iterations = ParserUtil.getInteger(cli, iterationsOption);
+    this.maxIterations = ParserUtil.getInteger(cli, iterationsOption);
     this.learningRate = ParserUtil.getDouble(cli, learningRateOption);
     this.learningRate = Math.max(0.0001, learningRate);
     this.metaData = ParserUtil.getMap(cli, metaDataOption, "=");
@@ -145,8 +144,9 @@ public class LinearRegressionDriver extends Configured implements Tool {
     // loop until model converges or exceeds maximal iteration
     do {
       log.info(String.format("Iteration %d.", curIteration));
+      ++curIteration;
       prevModel = LinearRegressionModel.getCopy(this.model);
-      Job job = new Job(conf, "Linear Regression");
+      Job job = new Job(conf, String.format("Linear Regression: iteration %d", curIteration));
       job.setJarByClass(LinearRegressionDriver.class);
       job.setMapperClass(LinearRegressionMapper.class);
       job.setReducerClass(LinearRegressionReducer.class);
@@ -154,16 +154,17 @@ public class LinearRegressionDriver extends Configured implements Tool {
       // configure input and output
       FileInputFormat.addInputPath(job, trainingDataPath);
       job.setMapOutputKeyClass(NullWritable.class);
-      job.setMapOutputValueClass(VectorWritable.class);
+      job.setMapOutputValueClass(PairWritable.class);
       
       job.setInputFormatClass(SequenceFileInputFormat.class);
       job.setOutputKeyClass(NullWritable.class);
       job.setOutputValueClass(NullWritable.class);
       job.setOutputFormatClass(NullOutputFormat.class);
+      job.setNumReduceTasks(1);
 
       job.waitForCompletion(true);
       model = new LinearRegressionModel(this.modelPath, conf);
-    } while (++curIteration < iterations || prevModel.checkIdentical(model, EPSILON));
+    } while (curIteration < maxIterations || !prevModel.isIdentical(model, EPSILON));
 
     return 0;
   }

@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -28,7 +29,7 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
 
   private double bias;
 
-  private double[] features;
+  private double[] features; 
 
   public static LinearRegressionModel getCopy(LinearRegressionModel model) {
     double[] features = model.getFeatureWeights();
@@ -41,10 +42,24 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
 
     return copy;
   }
+  
+  /**
+   * 
+   * @param dimension   The number of dimensions of the features (bias in the model is excluded).
+   * @param modelMetadata
+   * @return
+   */
+  public static LinearRegressionModel initializeModel(int dimension, Map<String, String> modelMetadata) {
+    return new LinearRegressionModel(dimension, modelMetadata);
+  }
 
-  public LinearRegressionModel(int dimension, Map<String, String> modelMetadata) {
-    this.bias = 0;
+  private LinearRegressionModel(int dimension, Map<String, String> modelMetadata) {
+    Random rnd = new Random();
+    this.bias = rnd.nextDouble();
     this.features = new double[dimension];
+    for (int i = 0; i < features.length; ++i) {
+      this.features[i] = rnd.nextDouble();
+    }
     this.modelMetadata = new HashMap<String, String>();
   }
 
@@ -72,10 +87,14 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
     this.bias = weight;
   }
 
-  public void updateWeights(Vector updates) {
-    this.bias -= updates.get(0);
+  /**
+   * Update all the weights including the bias (the 0th element).
+   * @param updates
+   */
+  public void updateAllWeights(Vector updates) {
+    this.bias += updates.get(0);
     for (int i = 0; i < features.length; ++i) {
-      this.features[i] -= updates.get(i + 1);
+      this.features[i] += updates.get(i + 1);
     }
   }
 
@@ -175,7 +194,7 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
    * @param epsilon
    * @return
    */
-  public boolean checkIdentical(LinearRegressionModel otherModel, double epsilon) {
+  public boolean isIdentical(LinearRegressionModel otherModel, double epsilon) {
     double[] otherFeatures = otherModel.features;
     if (features.length != otherFeatures.length) {
       return false;
