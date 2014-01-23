@@ -7,6 +7,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
@@ -27,7 +28,7 @@ public class LinearRegressionMapper extends
   private double regularizationRate;
 
   private double biasUpdate;
-  private double[] weightUpdates;
+  private Vector weightUpdates;
 
   private LinearRegressionModel model;
 
@@ -44,8 +45,14 @@ public class LinearRegressionMapper extends
     String modelPath = conf.get("model.path");
 
     this.biasUpdate = 0;
-    this.weightUpdates = new double[this.featureDimension];
-
+    
+    if (this.featureDimension <= LinearRegressionModel.DIMENSION_THRESHOLD) {
+      this.weightUpdates = new DenseVector(this.featureDimension);
+    }
+    else {
+      this.weightUpdates = new RandomAccessSparseVector(this.featureDimension);
+    }
+    
     try { // load the model into memory
       model = new LinearRegressionModel(modelPath, conf);
     } catch (IOException e) {
@@ -64,12 +71,14 @@ public class LinearRegressionMapper extends
     double actual = model.predict(vec).get(0);
 
     // update bias
-    this.biasUpdate -= learningRate * (actual - expected) + regularizationRate * model.getBias();
+    double biasDelta = learningRate * (actual - expected) + regularizationRate * model.getBias();
+    biasUpdate -= biasDelta;
 
     // update each weight
     for (int i = 0; i < featureDimension; ++i) {
-      this.weightUpdates[i] -= learningRate * (actual - expected) * vec.get(i) 
+      double delta = learningRate * (actual - expected) * vec.get(i) 
           + regularizationRate * model.getFeatureWeight(i); // regularization term
+      weightUpdates.set(i, weightUpdates.get(i) - delta);
     }
   }
 
@@ -82,7 +91,7 @@ public class LinearRegressionMapper extends
     Vector vec = new DenseVector(1 + this.featureDimension);
     vec.set(0, this.biasUpdate);
     for (int i = 0; i < featureDimension; ++i) {
-      vec.set(i + 1, this.weightUpdates[i]);
+      vec.set(i + 1, this.weightUpdates.get(i));
     }
 
     context.write(NullWritable.get(), new PairWritable(new LongWritable(count), new VectorWritable(

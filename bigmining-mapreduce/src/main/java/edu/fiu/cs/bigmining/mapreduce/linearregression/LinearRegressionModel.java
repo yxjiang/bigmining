@@ -17,49 +17,63 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
+import org.apache.mahout.math.VectorWritable;
+import org.apache.mahout.math.function.DoubleFunction;
 
 import com.google.common.io.Closeables;
 
 import edu.fiu.cs.bigmining.mapreduce.PredictiveModel;
 
 public class LinearRegressionModel extends PredictiveModel implements Writable {
+  
+  public static final int DIMENSION_THRESHOLD = 10000;
 
   private Map<String, String> modelMetadata;
 
   private double bias;
 
-  private double[] features; 
+  private Vector features;
 
   public static LinearRegressionModel getCopy(LinearRegressionModel model) {
-    double[] features = model.getFeatureWeights();
-    LinearRegressionModel copy = new LinearRegressionModel(features.length, model.getMetadata());
+    LinearRegressionModel copy = new LinearRegressionModel(model.getFeatureWeights().size(),
+        model.getMetadata());
 
     copy.setBiasWeight(model.getBias());
-    for (int i = 0; i < features.length; ++i) {
-      copy.setWeight(i, features[i]);
-    }
+    copy.features = model.getFeatureWeights().clone();
 
     return copy;
   }
-  
+
   /**
    * 
-   * @param dimension   The number of dimensions of the features (bias in the model is excluded).
+   * @param dimension The number of dimensions of the features (bias in the
+   *          model is excluded).
    * @param modelMetadata
    * @return
    */
-  public static LinearRegressionModel initializeModel(int dimension, Map<String, String> modelMetadata) {
+  public static LinearRegressionModel initializeModel(int dimension,
+      Map<String, String> modelMetadata) {
     return new LinearRegressionModel(dimension, modelMetadata);
   }
 
   private LinearRegressionModel(int dimension, Map<String, String> modelMetadata) {
-    Random rnd = new Random();
+    final Random rnd = new Random();
     this.bias = rnd.nextDouble();
-    this.features = new double[dimension];
-    for (int i = 0; i < features.length; ++i) {
-      this.features[i] = rnd.nextDouble();
+    if (dimension <= DIMENSION_THRESHOLD) {
+      this.features = new DenseVector(dimension);
+    } else {
+      this.features = new RandomAccessSparseVector(dimension);
     }
+
+    features = features.assign(new DoubleFunction() {
+      @Override
+      public double apply(double x) {
+        return rnd.nextDouble();
+      }
+    });
+
     this.modelMetadata = new HashMap<String, String>();
   }
 
@@ -68,19 +82,19 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
   }
 
   public double getFeatureWeight(int index) {
-    return this.features[index];
+    return this.features.getQuick(index);
   }
 
   public double getBias() {
     return this.bias;
   }
 
-  public double[] getFeatureWeights() {
+  public Vector getFeatureWeights() {
     return this.features;
   }
 
   public void setWeight(int index, double weight) {
-    this.features[index] = weight;
+    this.features.set(index, weight);
   }
 
   public void setBiasWeight(double weight) {
@@ -89,12 +103,13 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
 
   /**
    * Update all the weights including the bias (the 0th element).
+   * 
    * @param updates
    */
   public void updateAllWeights(Vector updates) {
     this.bias += updates.get(0);
-    for (int i = 0; i < features.length; ++i) {
-      this.features[i] += updates.get(i + 1);
+    for (int i = 0; i < features.size(); ++i) {
+      features.set(i, features.getQuick(i) + updates.get(i + 1));
     }
   }
 
@@ -111,9 +126,13 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
   @Override
   public Vector predict(Vector values) {
     double value = bias;
-    for (int i = 0; i < features.length; ++i) {
-      value += features[i] * values.get(i);
+
+    if (values.size() == features.size()) {
+      value += features.dot(values);
+    } else {
+      value += features.dot(values.viewPart(0, features.size()));
     }
+
     double[] result = new double[] { value };
     return new DenseVector(result);
   }
@@ -126,10 +145,7 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
       WritableUtils.writeString(out, entry.getValue());
     }
     out.writeDouble(bias);
-    out.writeInt(features.length);
-    for (int i = 0; i < features.length; ++i) {
-      out.writeDouble(features[i]);
-    }
+    VectorWritable.writeVector(out, features);
   }
 
   public void readFields(DataInput in) throws IOException {
@@ -139,10 +155,7 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
       this.modelMetadata.put(WritableUtils.readString(in), WritableUtils.readString(in));
     }
     this.bias = in.readDouble();
-    this.features = new double[in.readInt()];
-    for (int i = 0; i < features.length; ++i) {
-      this.features[i] = in.readDouble();
-    }
+    this.features = VectorWritable.readVector(in);
   }
 
   /**
@@ -195,18 +208,9 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
    * @return
    */
   public boolean isIdentical(LinearRegressionModel otherModel, double epsilon) {
-    double[] otherFeatures = otherModel.features;
-    if (features.length != otherFeatures.length) {
-      return false;
-    }
-
-    for (int i = 0; i < features.length; ++i) {
-      if (Math.abs(features[i] - otherFeatures[i]) > epsilon) {
-        return false;
-      }
-    }
-
-    return Math.abs(bias - otherModel.bias) <= epsilon;
+    // The difference of all features must be smaller than epsilon
+    return features.minus(otherModel.features).norm(Double.POSITIVE_INFINITY) <= epsilon
+        && Math.abs(bias - otherModel.bias) <= epsilon;
   }
 
 }
