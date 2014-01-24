@@ -26,6 +26,7 @@ public class LinearRegressionMapper extends
 
   private double learningRate;
   private double regularizationRate;
+  private LinearRegressionDriver.RegularizationType regularizationType;
 
   private double biasUpdate;
   private Vector weightUpdates;
@@ -39,8 +40,10 @@ public class LinearRegressionMapper extends
     this.featureDimension = conf.getInt("feature.dimension", 0);
     this.learningRate = Double.parseDouble(conf.get("learning.rate") != null ? conf
         .get("learning.rate") : "0.01");
-    this.regularizationRate = Double.parseDouble(conf.get("learning.rate") != null ? conf
+    this.regularizationRate = Double.parseDouble(conf.get("regularization.rate") != null ? conf
         .get("learning.rate") : "0.01");
+    
+    this.regularizationType = conf.getEnum("regularization.type", LinearRegressionDriver.RegularizationType.L1);
 
     String modelPath = conf.get("model.path");
 
@@ -71,15 +74,22 @@ public class LinearRegressionMapper extends
     double actual = model.predict(vec).get(0);
 
     // update bias
-    double biasDelta = learningRate * (actual - expected) + regularizationRate * model.getBias();
-    biasUpdate -= biasDelta;
-
-    // update each weight
-    for (int i = 0; i < featureDimension; ++i) {
-      double delta = learningRate * (actual - expected) * vec.get(i) 
-          + regularizationRate * model.getFeatureWeight(i); // regularization term
-      weightUpdates.set(i, weightUpdates.get(i) - delta);
+    if (this.regularizationType == LinearRegressionDriver.RegularizationType.L1) {
+      double biasDelta = learningRate * (actual - expected) + regularizationRate * model.getBias();
+      biasUpdate -= biasDelta;
+      
+      // update each weight
+      for (int i = 0; i < featureDimension; ++i) {
+        double delta = 0; 
+        delta = learningRate * (actual - expected) * vec.get(i) 
+            + regularizationRate * model.getFeatureWeight(i); // regularization term
+        weightUpdates.set(i, weightUpdates.get(i) - delta);
+      }
     }
+    else if (this.regularizationType == LinearRegressionDriver.RegularizationType.LASSO) {
+      
+    }
+    
   }
 
   /**

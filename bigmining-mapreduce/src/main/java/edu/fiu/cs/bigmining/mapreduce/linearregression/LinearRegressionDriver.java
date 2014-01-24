@@ -31,6 +31,11 @@ import edu.fiu.cs.bigmining.util.ParserUtil;
  * 
  */
 public class LinearRegressionDriver extends Configured implements Tool {
+  
+  public static enum RegularizationType {
+    L1,
+    LASSO
+  }
 
   private static final Logger log = LoggerFactory.getLogger(LinearRegressionDriver.class);
 
@@ -42,6 +47,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
   private int maxIterations;
   private double learningRate;
   private double regularizationRate;
+  private RegularizationType regularizationType;
   private Map<String, String> metaData;
 
   private LinearRegressionModel model;
@@ -96,13 +102,24 @@ public class LinearRegressionDriver extends Configured implements Tool {
             argumentBuilder.withName("learning-rate").withMinimum(1).withMaximum(1)
                 .withDefault(0.1).create()).withRequired(false).create();
 
+    Option regularizationTypeOption = optionBuilder
+        .withShortName("t")
+        .withLongName("type")
+        .withDescription("the type of regularization: 'l2' or 'lasso'")
+        .withArgument(
+            argumentBuilder.withName("type").withDefault("l2").withMinimum(1).withMaximum(1)
+                .create()).withRequired(false).create();
+
+    Group regularizationTypeGroup = groupBuilder.withOption(regularizationTypeOption).create();
+
     Option regularizationRateOption = optionBuilder
         .withShortName("r")
         .withLongName("regularization-rate")
         .withDescription("the regularization rate for training")
         .withArgument(
             argumentBuilder.withName("regularization-rate").withMinimum(1).withMaximum(1)
-                .withDefault(0.01).create()).withRequired(false).create();
+                .withDefault(0.01).create()).withRequired(false)
+        .withChildren(regularizationTypeGroup).create();
 
     // the key value pairs of meta data
     Option metaDataOption = optionBuilder.withShortName("meta").withLongName("metadata")
@@ -112,7 +129,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
     Group normalGroup = groupBuilder.withOption(trainingDataPathOption).withOption(modelPathOption)
         .withOption(modelDimensionOption).withOption(iterationsOption)
         .withOption(learningRateOption).withOption(regularizationRateOption)
-        .withOption(metaDataOption).create();
+        .withOption(regularizationRateOption).withOption(metaDataOption).create();
 
     Parser parser = new Parser();
     parser.setGroup(normalGroup);
@@ -132,6 +149,14 @@ public class LinearRegressionDriver extends Configured implements Tool {
     this.learningRate = Math.max(EPSILON, learningRate);
     this.regularizationRate = ParserUtil.getDouble(cli, regularizationRateOption);
     this.regularizationRate = Math.max(EPSILON, regularizationRate);
+    String type = ParserUtil.getString(cli, regularizationTypeOption);
+    if (type.equalsIgnoreCase("l1")) {
+      this.regularizationType = RegularizationType.L1;
+    }
+    else if (type.equalsIgnoreCase("lasso")) {
+      this.regularizationType = RegularizationType.LASSO;
+    }
+    
     this.metaData = ParserUtil.getMap(cli, metaDataOption, "=");
 
     return true;
@@ -149,6 +174,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
     conf.setInt("feature.dimension", this.dimension);
     conf.set("learning.rate", "" + this.learningRate);
     conf.set("regularization.rate", "" + this.regularizationRate);
+    conf.setEnum("regularization.type", this.regularizationType);
     
     initializeModel();
 

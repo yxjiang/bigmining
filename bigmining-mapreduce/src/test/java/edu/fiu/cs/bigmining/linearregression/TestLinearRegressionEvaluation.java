@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closeables;
 
+import edu.fiu.cs.bigmining.mapreduce.PredictiveModel;
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.math.ErrorMeasure;
 import edu.fiu.cs.bigmining.math.RMSE;
@@ -57,7 +58,16 @@ public class TestLinearRegressionEvaluation extends TestBase {
     
     Closeables.close(reader, true);
     
+    printWeights(model);
+    
     log.info("End of evaluation.");
+  }
+  
+  private void printWeights(LinearRegressionModel model) {
+    double bias = model.getBias();
+    Vector vec = model.getFeatureWeights();
+    
+    System.out.printf("%f\t%s\n", bias, vec);
   }
 
 }
