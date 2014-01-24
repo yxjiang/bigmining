@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.mapreduce.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.linearregression.ridge;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -10,13 +10,15 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.mahout.math.Vector;
 
+import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 
-public class LinearRegressionReducer extends
+
+public class RidgeLinearRegressionReducer extends
     Reducer<NullWritable, PairWritable, NullWritable, NullWritable> {
   
   private String modelPath;
   
-  private LinearRegressionModel model;
+  private RidgeLinearRegressionModel model;
   
   public void setup(Context context) {
     Configuration conf = context.getConfiguration();
@@ -24,7 +26,7 @@ public class LinearRegressionReducer extends
     
     // load model
     try {
-      model = new LinearRegressionModel(modelPath, conf);
+      model = new RidgeLinearRegressionModel(modelPath, conf);
     } catch (IOException e) {
       e.printStackTrace();
     }

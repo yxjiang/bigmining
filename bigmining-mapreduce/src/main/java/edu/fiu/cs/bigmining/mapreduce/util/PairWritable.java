@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.mapreduce.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.util;
 
 import java.io.DataInput;
 import java.io.DataOutput;

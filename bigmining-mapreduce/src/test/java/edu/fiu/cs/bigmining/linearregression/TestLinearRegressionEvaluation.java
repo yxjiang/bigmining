@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.io.Closeables;
 
 import edu.fiu.cs.bigmining.mapreduce.PredictiveModel;
-import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
+import edu.fiu.cs.bigmining.mapreduce.linearregression.ridge.RidgeLinearRegressionModel;
 import edu.fiu.cs.bigmining.math.ErrorMeasure;
 import edu.fiu.cs.bigmining.math.RMSE;
 import edu.fiu.cs.bigmining.util.TestBase;
@@ -38,7 +38,7 @@ public class TestLinearRegressionEvaluation extends TestBase {
   public void evaluate() throws IOException {
     log.info("Begin to evaluate the model...");
     
-    LinearRegressionModel model = new LinearRegressionModel(modelPathStr, conf);
+    RidgeLinearRegressionModel model = new RidgeLinearRegressionModel(modelPathStr, conf);
     
     Path path = new Path(trainingDataStr);
     SequenceFile.Reader reader = new SequenceFile.Reader(fs, path, conf);
@@ -63,7 +63,7 @@ public class TestLinearRegressionEvaluation extends TestBase {
     log.info("End of evaluation.");
   }
   
-  private void printWeights(LinearRegressionModel model) {
+  private void printWeights(RidgeLinearRegressionModel model) {
     double bias = model.getBias();
     Vector vec = model.getFeatureWeights();
     

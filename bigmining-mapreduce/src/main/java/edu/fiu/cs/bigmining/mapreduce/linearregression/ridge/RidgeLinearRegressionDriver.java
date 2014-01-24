@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.mapreduce.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.linearregression.ridge;
 
 import java.io.IOException;
 import java.util.Map;
@@ -24,20 +24,16 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 import edu.fiu.cs.bigmining.util.ParserUtil;
 
 /**
  * The driver to run the linear regression.
  * 
  */
-public class LinearRegressionDriver extends Configured implements Tool {
+public class RidgeLinearRegressionDriver extends Configured implements Tool {
   
-  public static enum RegularizationType {
-    L1,
-    LASSO
-  }
-
-  private static final Logger log = LoggerFactory.getLogger(LinearRegressionDriver.class);
+  private static final Logger log = LoggerFactory.getLogger(RidgeLinearRegressionDriver.class);
 
   private static final double EPSILON = 0.001;
 
@@ -47,10 +43,9 @@ public class LinearRegressionDriver extends Configured implements Tool {
   private int maxIterations;
   private double learningRate;
   private double regularizationRate;
-  private RegularizationType regularizationType;
   private Map<String, String> metaData;
 
-  private LinearRegressionModel model;
+  private RidgeLinearRegressionModel model;
 
   /**
    * Initialize the model.
@@ -59,7 +54,7 @@ public class LinearRegressionDriver extends Configured implements Tool {
    * @throws IOException
    */
   private void initializeModel() throws IOException {
-    model = LinearRegressionModel.initializeModel(dimension, metaData);
+    model = RidgeLinearRegressionModel.initializeModel(dimension, metaData);
     model.writeToFile(modelPath, getConf());
   }
 
@@ -102,24 +97,13 @@ public class LinearRegressionDriver extends Configured implements Tool {
             argumentBuilder.withName("learning-rate").withMinimum(1).withMaximum(1)
                 .withDefault(0.1).create()).withRequired(false).create();
 
-    Option regularizationTypeOption = optionBuilder
-        .withShortName("t")
-        .withLongName("type")
-        .withDescription("the type of regularization: 'l2' or 'lasso'")
-        .withArgument(
-            argumentBuilder.withName("type").withDefault("l2").withMinimum(1).withMaximum(1)
-                .create()).withRequired(false).create();
-
-    Group regularizationTypeGroup = groupBuilder.withOption(regularizationTypeOption).create();
-
     Option regularizationRateOption = optionBuilder
         .withShortName("r")
         .withLongName("regularization-rate")
         .withDescription("the regularization rate for training")
         .withArgument(
             argumentBuilder.withName("regularization-rate").withMinimum(1).withMaximum(1)
-                .withDefault(0.01).create()).withRequired(false)
-        .withChildren(regularizationTypeGroup).create();
+                .withDefault(0.01).create()).withRequired(false).create();
 
     // the key value pairs of meta data
     Option metaDataOption = optionBuilder.withShortName("meta").withLongName("metadata")
@@ -149,13 +133,6 @@ public class LinearRegressionDriver extends Configured implements Tool {
     this.learningRate = Math.max(EPSILON, learningRate);
     this.regularizationRate = ParserUtil.getDouble(cli, regularizationRateOption);
     this.regularizationRate = Math.max(EPSILON, regularizationRate);
-    String type = ParserUtil.getString(cli, regularizationTypeOption);
-    if (type.equalsIgnoreCase("l1")) {
-      this.regularizationType = RegularizationType.L1;
-    }
-    else if (type.equalsIgnoreCase("lasso")) {
-      this.regularizationType = RegularizationType.LASSO;
-    }
     
     this.metaData = ParserUtil.getMap(cli, metaDataOption, "=");
 
@@ -174,23 +151,22 @@ public class LinearRegressionDriver extends Configured implements Tool {
     conf.setInt("feature.dimension", this.dimension);
     conf.set("learning.rate", "" + this.learningRate);
     conf.set("regularization.rate", "" + this.regularizationRate);
-    conf.setEnum("regularization.type", this.regularizationType);
     
     initializeModel();
 
     Path trainingDataPath = new Path(this.trainingDataPath);
-    LinearRegressionModel prevModel = null;
+    RidgeLinearRegressionModel prevModel = null;
 
     int curIteration = 0;
     // loop until model converges or exceeds maximal iteration
     do {
       log.info(String.format("Iteration %d.", curIteration));
       ++curIteration;
-      prevModel = LinearRegressionModel.getCopy(this.model);
+      prevModel = RidgeLinearRegressionModel.getCopy(this.model);
       Job job = new Job(conf, String.format("Linear Regression: iteration %d", curIteration));
-      job.setJarByClass(LinearRegressionDriver.class);
-      job.setMapperClass(LinearRegressionMapper.class);
-      job.setReducerClass(LinearRegressionReducer.class);
+      job.setJarByClass(RidgeLinearRegressionDriver.class);
+      job.setMapperClass(RidgeLinearRegressionMapper.class);
+      job.setReducerClass(RidgeLinearRegressionReducer.class);
 
       // configure input and output
       FileInputFormat.addInputPath(job, trainingDataPath);
@@ -204,14 +180,14 @@ public class LinearRegressionDriver extends Configured implements Tool {
       job.setNumReduceTasks(1);
 
       job.waitForCompletion(true);
-      model = new LinearRegressionModel(this.modelPath, conf);
+      model = new RidgeLinearRegressionModel(this.modelPath, conf);
     } while (curIteration < maxIterations && !prevModel.isIdentical(model, EPSILON));
 
     return 0;
   }
 
   public static void main(String[] args) throws Exception {
-    int exit = ToolRunner.run(new LinearRegressionDriver(), args);
+    int exit = ToolRunner.run(new RidgeLinearRegressionDriver(), args);
     System.exit(exit);
   }
 

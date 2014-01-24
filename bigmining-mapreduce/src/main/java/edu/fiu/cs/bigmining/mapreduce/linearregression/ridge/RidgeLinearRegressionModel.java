@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.mapreduce.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.linearregression.ridge;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -26,7 +26,7 @@ import com.google.common.io.Closeables;
 
 import edu.fiu.cs.bigmining.mapreduce.PredictiveModel;
 
-public class LinearRegressionModel extends PredictiveModel implements Writable {
+public class RidgeLinearRegressionModel extends PredictiveModel implements Writable {
   
   public static final int DIMENSION_THRESHOLD = 10000;
 
@@ -36,8 +36,8 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
 
   private Vector features;
 
-  public static LinearRegressionModel getCopy(LinearRegressionModel model) {
-    LinearRegressionModel copy = new LinearRegressionModel(model.getFeatureWeights().size(),
+  public static RidgeLinearRegressionModel getCopy(RidgeLinearRegressionModel model) {
+    RidgeLinearRegressionModel copy = new RidgeLinearRegressionModel(model.getFeatureWeights().size(),
         model.getMetadata());
 
     copy.setBiasWeight(model.getBias());
@@ -53,12 +53,12 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
    * @param modelMetadata
    * @return
    */
-  public static LinearRegressionModel initializeModel(int dimension,
+  public static RidgeLinearRegressionModel initializeModel(int dimension,
       Map<String, String> modelMetadata) {
-    return new LinearRegressionModel(dimension, modelMetadata);
+    return new RidgeLinearRegressionModel(dimension, modelMetadata);
   }
 
-  private LinearRegressionModel(int dimension, Map<String, String> modelMetadata) {
+  private RidgeLinearRegressionModel(int dimension, Map<String, String> modelMetadata) {
     final Random rnd = new Random();
     this.bias = rnd.nextDouble();
     if (dimension <= DIMENSION_THRESHOLD) {
@@ -77,7 +77,7 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
     this.modelMetadata = new HashMap<String, String>();
   }
 
-  public LinearRegressionModel(String modelPath, Configuration conf) throws IOException {
+  public RidgeLinearRegressionModel(String modelPath, Configuration conf) throws IOException {
     this.readFromFile(modelPath, conf);
   }
 
@@ -207,7 +207,7 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
    * @param epsilon
    * @return
    */
-  public boolean isIdentical(LinearRegressionModel otherModel, double epsilon) {
+  public boolean isIdentical(RidgeLinearRegressionModel otherModel, double epsilon) {
     // The difference of all features must be smaller than epsilon
     return features.minus(otherModel.features).norm(Double.POSITIVE_INFINITY) <= epsilon
         && Math.abs(bias - otherModel.bias) <= epsilon;

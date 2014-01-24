@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 
-import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionDriver;
+import edu.fiu.cs.bigmining.mapreduce.linearregression.ridge.RidgeLinearRegressionDriver;
 import edu.fiu.cs.bigmining.util.Normalizer;
 import edu.fiu.cs.bigmining.util.TestBase;
 
@@ -92,7 +92,7 @@ public class TestLinearRegressionDriver extends TestBase {
 
     String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension,
         "-itr", "10", "-l", "0.1", "-r", "0.01" };
-    LinearRegressionDriver.main(args);
+    RidgeLinearRegressionDriver.main(args);
 
   }
 

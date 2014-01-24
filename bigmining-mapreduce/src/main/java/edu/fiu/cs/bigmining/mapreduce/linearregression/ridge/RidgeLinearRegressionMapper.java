@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.mapreduce.linearregression;
+package edu.fiu.cs.bigmining.mapreduce.linearregression.ridge;
 
 import java.io.IOException;
 
@@ -11,13 +11,15 @@ import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
 
+import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
+
 /**
  * The Mapper for linear regression. Two kinds of keys (boolean) are generated,
  * the 'FALSE' key denotes the count, the 'TRUE' key denotes the aggregated
  * vector.
  * 
  */
-public class LinearRegressionMapper extends
+public class RidgeLinearRegressionMapper extends
     Mapper<NullWritable, VectorWritable, NullWritable, PairWritable> {
 
   /* a sparse vector contains the weight updates */
@@ -26,12 +28,11 @@ public class LinearRegressionMapper extends
 
   private double learningRate;
   private double regularizationRate;
-  private LinearRegressionDriver.RegularizationType regularizationType;
 
   private double biasUpdate;
   private Vector weightUpdates;
 
-  private LinearRegressionModel model;
+  private RidgeLinearRegressionModel model;
 
   @Override
   public void setup(Context context) {
@@ -42,22 +43,19 @@ public class LinearRegressionMapper extends
         .get("learning.rate") : "0.01");
     this.regularizationRate = Double.parseDouble(conf.get("regularization.rate") != null ? conf
         .get("learning.rate") : "0.01");
-    
-    this.regularizationType = conf.getEnum("regularization.type", LinearRegressionDriver.RegularizationType.L1);
 
     String modelPath = conf.get("model.path");
 
     this.biasUpdate = 0;
-    
-    if (this.featureDimension <= LinearRegressionModel.DIMENSION_THRESHOLD) {
+
+    if (this.featureDimension <= RidgeLinearRegressionModel.DIMENSION_THRESHOLD) {
       this.weightUpdates = new DenseVector(this.featureDimension);
-    }
-    else {
+    } else {
       this.weightUpdates = new RandomAccessSparseVector(this.featureDimension);
     }
-    
+
     try { // load the model into memory
-      model = new LinearRegressionModel(modelPath, conf);
+      model = new RidgeLinearRegressionModel(modelPath, conf);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -74,22 +72,17 @@ public class LinearRegressionMapper extends
     double actual = model.predict(vec).get(0);
 
     // update bias
-    if (this.regularizationType == LinearRegressionDriver.RegularizationType.L1) {
-      double biasDelta = learningRate * (actual - expected) + regularizationRate * model.getBias();
-      biasUpdate -= biasDelta;
-      
-      // update each weight
-      for (int i = 0; i < featureDimension; ++i) {
-        double delta = 0; 
-        delta = learningRate * (actual - expected) * vec.get(i) 
-            + regularizationRate * model.getFeatureWeight(i); // regularization term
-        weightUpdates.set(i, weightUpdates.get(i) - delta);
-      }
+    double biasDelta = learningRate * (actual - expected) + regularizationRate * model.getBias();
+    biasUpdate -= biasDelta;
+
+    // update each weight
+    for (int i = 0; i < featureDimension; ++i) {
+      double delta = 0;
+      delta = learningRate * (actual - expected) * vec.get(i) + regularizationRate
+          * model.getFeatureWeight(i); // regularization term
+      weightUpdates.set(i, weightUpdates.get(i) - delta);
     }
-    else if (this.regularizationType == LinearRegressionDriver.RegularizationType.LASSO) {
-      
-    }
-    
+
   }
 
   /**
