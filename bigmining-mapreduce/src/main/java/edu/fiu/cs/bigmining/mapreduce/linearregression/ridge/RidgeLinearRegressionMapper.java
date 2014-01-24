@@ -79,8 +79,8 @@ public class RidgeLinearRegressionMapper extends
     // update each weight
     for (int i = 0; i < featureDimension; ++i) {
       double delta = 0;
-      delta = learningRate * (actual - expected) * vec.get(i) + regularizationRate
-          * model.getFeatureWeight(i); // regularization term
+      delta = learningRate * ((actual - expected) * vec.get(i) + regularizationRate
+          * model.getFeatureWeight(i)); // regularization term
       weightUpdates.set(i, weightUpdates.get(i) - delta);
     }
 
@@ -91,13 +91,12 @@ public class RidgeLinearRegressionMapper extends
    * \frac{1}{count} \sigma_{count} (y - t) * x
    */
   public void cleanup(Context context) throws IOException, InterruptedException {
-    // write the number of counts first
     Vector vec = new DenseVector(1 + this.featureDimension);
     vec.set(0, this.biasUpdate);
     for (int i = 0; i < featureDimension; ++i) {
       vec.set(i + 1, this.weightUpdates.get(i));
     }
-
+    // the output contains the bias
     context.write(NullWritable.get(), new PairWritable(new LongWritable(count), new VectorWritable(
         vec)));
   }

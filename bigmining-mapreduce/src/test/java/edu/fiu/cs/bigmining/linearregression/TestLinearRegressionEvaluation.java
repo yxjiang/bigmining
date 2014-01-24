@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.io.Closeables;
 
-import edu.fiu.cs.bigmining.mapreduce.PredictiveModel;
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.math.ErrorMeasure;
 import edu.fiu.cs.bigmining.math.RMSE;

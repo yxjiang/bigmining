@@ -58,11 +58,6 @@ public class RidgeLinearRegressionReducer extends
    */
   public void cleanup(Context context) {
     try {
-      FileSystem fs = FileSystem.get(context.getConfiguration());
-      Path path = new Path(modelPath);
-      if (fs.exists(path)) {
-        fs.delete(path, true);
-      }
       model.writeToFile(modelPath, context.getConfiguration());
     } catch (IOException e) {
       e.printStackTrace();

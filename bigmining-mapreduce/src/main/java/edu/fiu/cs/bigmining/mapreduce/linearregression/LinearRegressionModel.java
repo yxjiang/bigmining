@@ -27,7 +27,7 @@ import com.google.common.io.Closeables;
 import edu.fiu.cs.bigmining.mapreduce.PredictiveModel;
 
 public class LinearRegressionModel extends PredictiveModel implements Writable {
-  
+
   public static final int DIMENSION_THRESHOLD = 10000;
 
   private Map<String, String> modelMetadata;
@@ -89,16 +89,37 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
     return this.bias;
   }
 
+  /**
+   * Get all the weights, bias excluded.
+   * 
+   * @return
+   */
   public Vector getFeatureWeights() {
     return this.features;
   }
 
+  /**
+   * Set the weight of a specific index, starting from 0 and bias is excluded.
+   * @param index
+   * @param weight
+   */
   public void setWeight(int index, double weight) {
     this.features.set(index, weight);
   }
 
   public void setBiasWeight(double weight) {
     this.bias = weight;
+  }
+
+  /**
+   * Update the weight for a specific index. The updated weight will becomes
+   * w_{index} + delta.
+   * 
+   * @param index
+   * @param delta
+   */
+  public void updateWeight(int index, double delta) {
+    features.set(index, features.getQuick(index) + delta);
   }
 
   /**
