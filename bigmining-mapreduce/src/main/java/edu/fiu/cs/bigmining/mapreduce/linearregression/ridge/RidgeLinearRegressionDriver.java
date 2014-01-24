@@ -24,6 +24,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 import edu.fiu.cs.bigmining.util.ParserUtil;
 
@@ -45,7 +46,7 @@ public class RidgeLinearRegressionDriver extends Configured implements Tool {
   private double regularizationRate;
   private Map<String, String> metaData;
 
-  private RidgeLinearRegressionModel model;
+  private LinearRegressionModel model;
 
   /**
    * Initialize the model.
@@ -54,7 +55,7 @@ public class RidgeLinearRegressionDriver extends Configured implements Tool {
    * @throws IOException
    */
   private void initializeModel() throws IOException {
-    model = RidgeLinearRegressionModel.initializeModel(dimension, metaData);
+    model = LinearRegressionModel.initializeModel(dimension, metaData);
     model.writeToFile(modelPath, getConf());
   }
 
@@ -155,14 +156,14 @@ public class RidgeLinearRegressionDriver extends Configured implements Tool {
     initializeModel();
 
     Path trainingDataPath = new Path(this.trainingDataPath);
-    RidgeLinearRegressionModel prevModel = null;
+    LinearRegressionModel prevModel = null;
 
     int curIteration = 0;
     // loop until model converges or exceeds maximal iteration
     do {
       log.info(String.format("Iteration %d.", curIteration));
       ++curIteration;
-      prevModel = RidgeLinearRegressionModel.getCopy(this.model);
+      prevModel = LinearRegressionModel.getCopy(this.model);
       Job job = new Job(conf, String.format("Linear Regression: iteration %d", curIteration));
       job.setJarByClass(RidgeLinearRegressionDriver.class);
       job.setMapperClass(RidgeLinearRegressionMapper.class);
@@ -180,7 +181,7 @@ public class RidgeLinearRegressionDriver extends Configured implements Tool {
       job.setNumReduceTasks(1);
 
       job.waitForCompletion(true);
-      model = new RidgeLinearRegressionModel(this.modelPath, conf);
+      model = new LinearRegressionModel(this.modelPath, conf);
     } while (curIteration < maxIterations && !prevModel.isIdentical(model, EPSILON));
 
     return 0;

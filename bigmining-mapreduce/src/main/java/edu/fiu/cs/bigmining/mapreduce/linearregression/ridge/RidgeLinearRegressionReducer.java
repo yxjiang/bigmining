@@ -10,6 +10,7 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.mahout.math.Vector;
 
+import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 
 
@@ -18,7 +19,7 @@ public class RidgeLinearRegressionReducer extends
   
   private String modelPath;
   
-  private RidgeLinearRegressionModel model;
+  private LinearRegressionModel model;
   
   public void setup(Context context) {
     Configuration conf = context.getConfiguration();
@@ -26,7 +27,7 @@ public class RidgeLinearRegressionReducer extends
     
     // load model
     try {
-      model = new RidgeLinearRegressionModel(modelPath, conf);
+      model = new LinearRegressionModel(modelPath, conf);
     } catch (IOException e) {
       e.printStackTrace();
     }

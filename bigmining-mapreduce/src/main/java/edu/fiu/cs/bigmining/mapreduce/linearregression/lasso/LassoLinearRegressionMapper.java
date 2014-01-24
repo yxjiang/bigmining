@@ -1,4 +1,4 @@
-package edu.fiu.cs.bigmining.mapreduce.linearregression.ridge;
+package edu.fiu.cs.bigmining.mapreduce.linearregression.lasso;
 
 import java.io.IOException;
 
@@ -15,12 +15,10 @@ import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 
 /**
- * The Mapper for linear regression. Two kinds of keys (boolean) are generated,
- * the 'FALSE' key denotes the count, the 'TRUE' key denotes the aggregated
- * vector.
+ * The Mapper of Lasso linear regression.
  * 
  */
-public class RidgeLinearRegressionMapper extends
+public class LassoLinearRegressionMapper extends
     Mapper<NullWritable, VectorWritable, NullWritable, PairWritable> {
 
   /* a sparse vector contains the weight updates */
@@ -31,7 +29,8 @@ public class RidgeLinearRegressionMapper extends
   private double regularizationRate;
 
   private double biasUpdate;
-  private Vector weightUpdates;
+  private Vector weightUpdatesPositive;
+  private Vector weightUpdatesNegative;
 
   private LinearRegressionModel model;
 
@@ -50,9 +49,11 @@ public class RidgeLinearRegressionMapper extends
     this.biasUpdate = 0;
 
     if (this.featureDimension <= LinearRegressionModel.DIMENSION_THRESHOLD) {
-      this.weightUpdates = new DenseVector(this.featureDimension);
+      this.weightUpdatesPositive = new DenseVector(this.featureDimension);
+      this.weightUpdatesNegative = new DenseVector(this.featureDimension);
     } else {
-      this.weightUpdates = new RandomAccessSparseVector(this.featureDimension);
+      this.weightUpdatesPositive = new RandomAccessSparseVector(this.featureDimension);
+      this.weightUpdatesNegative = new RandomAccessSparseVector(this.featureDimension);
     }
 
     try { // load the model into memory
@@ -73,16 +74,11 @@ public class RidgeLinearRegressionMapper extends
     double actual = model.predict(vec).get(0);
 
     // update bias
-    double biasDelta = learningRate * (actual - expected) + regularizationRate * model.getBias();
-    biasUpdate -= biasDelta;
 
+    
+    
     // update each weight
-    for (int i = 0; i < featureDimension; ++i) {
-      double delta = 0;
-      delta = learningRate * (actual - expected) * vec.get(i) + regularizationRate
-          * model.getFeatureWeight(i); // regularization term
-      weightUpdates.set(i, weightUpdates.get(i) - delta);
-    }
+    
 
   }
 
@@ -92,14 +88,6 @@ public class RidgeLinearRegressionMapper extends
    */
   public void cleanup(Context context) throws IOException, InterruptedException {
     // write the number of counts first
-    Vector vec = new DenseVector(1 + this.featureDimension);
-    vec.set(0, this.biasUpdate);
-    for (int i = 0; i < featureDimension; ++i) {
-      vec.set(i + 1, this.weightUpdates.get(i));
-    }
-
-    context.write(NullWritable.get(), new PairWritable(new LongWritable(count), new VectorWritable(
-        vec)));
   }
 
 }
