@@ -23,19 +23,15 @@ import edu.fiu.cs.bigmining.mapreduce.linearregression.ridge.RidgeLinearRegressi
 import edu.fiu.cs.bigmining.util.Normalizer;
 import edu.fiu.cs.bigmining.util.TestBase;
 
-public class TestLinearRegressionDriver extends TestBase {
+public abstract class TestLinearRegressionDriver extends TestBase {
+  
+  protected final Logger log = LoggerFactory.getLogger(TestLinearRegressionDriver.class);
 
-  private static final Logger log = LoggerFactory.getLogger(TestLinearRegressionDriver.class);
-
-  private int featureDimension = 15;
-  private String rawDataStr = "../bigmining-commons/src/test/resources/raw-linear-regression.txt";
-  private String modelPathStr = String.format("/tmp/%s", "linear-regression-model.model");
-  private String trainingDataStr = String.format("/tmp/%s", "linear-regression-training.data");
-
-  @Override
-  public void extraSetup() {
-  }
-
+  protected int featureDimension = 15;
+  protected String rawDataStr = "../bigmining-commons/src/test/resources/raw-linear-regression.txt";
+  protected String modelPathStr = String.format("/tmp/%s", "linear-regression-model.model");
+  protected String trainingDataStr = String.format("/tmp/%s", "linear-regression-training.data");
+  
   private void generateTrainingData() throws IOException {
     log.info("Generate training data...");
 
@@ -85,16 +81,17 @@ public class TestLinearRegressionDriver extends TestBase {
       System.out.println(Arrays.toString(arr));
     }
   }
-
+  
   @Test
   public void testLinearRegressionDriver() throws Exception {
     this.generateTrainingData();
-
-    String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension,
-        "-itr", "10", "-l", "0.1", "-r", "0.01" };
-    RidgeLinearRegressionDriver.main(args);
-
+    this.run();
   }
+  
+  /**
+   * Set the parameters can run.
+   */
+  protected abstract void run() throws Exception;
 
   /**
    * Delete temporal data.

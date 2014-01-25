@@ -4,19 +4,21 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.BooleanWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
 
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 
 public class LassoLinearRegressionReducer extends
-    Reducer<BooleanWritable, PairWritable, NullWritable, NullWritable> {
+    Reducer<IntWritable, PairWritable, NullWritable, NullWritable> {
 
   private double learningRate;
   private double regularizationRate;
+  private int featureDimension;
 
   private String modelPath;
 
@@ -33,12 +35,13 @@ public class LassoLinearRegressionReducer extends
     this.modelPath = conf.get("model.path");
     this.learningRate = Double.parseDouble(conf.get("learning.rate"));
     this.regularizationRate = Double.parseDouble(conf.get("regularization.rate"));
+    this.featureDimension = conf.getInt("feature.dimension", 0);
 
     this.countPositive = 0;
     this.countNegative = 0;
 
-    this.globalUpdatesPositive = null;
-    this.globalUpdatesNegative = null;
+    this.globalUpdatesPositive = new DenseVector(this.featureDimension);
+    this.globalUpdatesNegative = new DenseVector(this.featureDimension);
 
     // load model
     try {
@@ -48,18 +51,40 @@ public class LassoLinearRegressionReducer extends
     }
   }
 
-  public void reduce(BooleanWritable key, Iterable<PairWritable> vecList, Context context) {
-    if (key.get()) { // receive negative updates
-      Iterator<PairWritable> itr = vecList.iterator();
+  /**
+   * Aggregate the positive and negative weight updates.
+   */
+  public void reduce(IntWritable key, Iterable<PairWritable> vecList, Context context) {
+    Iterator<PairWritable> itr = vecList.iterator();
+    context.getCounter("c", "non").increment(1);
+    if (key.get() == 0) {
+      context.getCounter("c", "negative").increment(1);
+    }
+    else {
+      context.getCounter("c", "positive").increment(1);
+    }
+    
+    if (key.get() == 0) { // receive negative updates
       while (itr.hasNext()) {
         PairWritable pair = itr.next();
         if (this.globalUpdatesNegative == null) {
           this.globalUpdatesNegative = pair.getValue().get();
-          this.countNegative += pair.getKey().get();
         } else {
-          this.globalUpdatesPositive = pair.getValue().get();
-          this.countPositive += pair.getKey().get();
+          this.globalUpdatesNegative = this.globalUpdatesNegative.plus(pair.getValue().get());
         }
+        this.countNegative += pair.getKey().get();
+      }
+    }
+    else { // receive positive updates
+      while (itr.hasNext()) {
+        PairWritable pair = itr.next();
+        if (this.globalUpdatesPositive == null) {
+          this.globalUpdatesPositive = pair.getValue().get();
+        }
+        else {
+          this.globalUpdatesPositive = this.globalUpdatesPositive.plus(pair.getValue().get());
+        }
+        this.countPositive += pair.getKey().get();
       }
     }
   }

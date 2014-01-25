@@ -3,7 +3,7 @@ package edu.fiu.cs.bigmining.mapreduce.linearregression.lasso;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.BooleanWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -21,16 +21,12 @@ import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
  * 
  */
 public class LassoLinearRegressionMapper extends
-    Mapper<NullWritable, VectorWritable, BooleanWritable, PairWritable> {
+    Mapper<NullWritable, VectorWritable, IntWritable, PairWritable> {
 
   /* a sparse vector contains the weight updates */
   private long count;
   private int featureDimension;
 
-  private double learningRate;
-  private double regularizationRate;
-
-  private double biasUpdate;
   private Vector weightUpdatesPositive;
   private Vector weightUpdatesNegative;
 
@@ -41,14 +37,8 @@ public class LassoLinearRegressionMapper extends
     Configuration conf = context.getConfiguration();
     this.count = 0;
     this.featureDimension = conf.getInt("feature.dimension", 0);
-    this.learningRate = Double.parseDouble(conf.get("learning.rate") != null ? conf
-        .get("learning.rate") : "0.01");
-    this.regularizationRate = Double.parseDouble(conf.get("regularization.rate") != null ? conf
-        .get("learning.rate") : "0.01");
 
     String modelPath = conf.get("model.path");
-
-    this.biasUpdate = 0;
 
     if (this.featureDimension <= LinearRegressionModel.DIMENSION_THRESHOLD) {
       this.weightUpdatesPositive = new DenseVector(this.featureDimension);
@@ -102,12 +92,12 @@ public class LassoLinearRegressionMapper extends
    */
   public void cleanup(Context context) throws IOException, InterruptedException {
     // the output vector does not contains the bias
-    BooleanWritable weightUpdatesPositiveKey = new BooleanWritable(false); // false denotes the positive
-    BooleanWritable weightUpdatesNegativeKey = new BooleanWritable(true);  // true denotes the negative
+    IntWritable weightUpdatesPositiveKey = new IntWritable(1); // false denotes the positive
+    IntWritable weightUpdatesNegativeKey = new IntWritable(0);  // true denotes the negative
     LongWritable countWritable = new LongWritable(count);
     
-    PairWritable positivePair = new PairWritable(countWritable, new VectorWritable(weightUpdatesPositive));
-    PairWritable negativePair = new PairWritable(countWritable, new VectorWritable(weightUpdatesNegative));
+    PairWritable positivePair = new PairWritable(countWritable, new VectorWritable(this.weightUpdatesPositive));
+    PairWritable negativePair = new PairWritable(countWritable, new VectorWritable(this.weightUpdatesNegative));
     context.write(weightUpdatesPositiveKey, positivePair);
     context.write(weightUpdatesNegativeKey, negativePair);
   }
