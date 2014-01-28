@@ -8,7 +8,7 @@ public class TestLassoLinearRegressionDriver extends TestLinearRegressionDriver 
   @Override
   protected void run() throws Exception {
     String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension,
-        "-itr", "30", "-l", "1", "-r", "0.1" };
+        "-itr", "50", "-l", "0.1", "-r", "1.0" };
     LassoLinearRegressionDriver.main(args);
   }
 

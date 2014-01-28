@@ -8,7 +8,7 @@ public class TestRidgeLinearRegressionDriver extends TestLinearRegressionDriver 
   @Override
   protected void run() throws Exception {
     String[] args = { "-i", trainingDataStr, "-m", modelPathStr, "-d", "" + featureDimension,
-        "-itr", "10", "-l", "0.1", "-r", "0.01" };
+        "-itr", "10", "-l", "0.2", "-r", "0.1" };
     RidgeLinearRegressionDriver.main(args);
   }
 

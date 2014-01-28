@@ -66,7 +66,7 @@ public class TestLinearRegressionEvaluation extends TestBase {
     double bias = model.getBias();
     Vector vec = model.getFeatureWeights();
     
-    System.out.printf("%f\t%s\n", bias, vec);
+    System.out.printf("Bias: %f\tFeatures:%s\n", bias, vec);
   }
 
 }

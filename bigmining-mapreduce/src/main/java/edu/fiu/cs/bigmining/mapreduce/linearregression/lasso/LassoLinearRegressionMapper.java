@@ -11,7 +11,6 @@ import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
-import org.apache.mahout.math.jet.math.Constants;
 
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
@@ -21,14 +20,13 @@ import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
  * 
  */
 public class LassoLinearRegressionMapper extends
-    Mapper<NullWritable, VectorWritable, IntWritable, PairWritable> {
+    Mapper<NullWritable, VectorWritable, NullWritable, PairWritable> {
 
   /* a sparse vector contains the weight updates */
   private long count;
   private int featureDimension;
 
-  private Vector weightUpdatesPositive;
-  private Vector weightUpdatesNegative;
+  private Vector weightUpdates;
 
   private LinearRegressionModel model;
 
@@ -41,15 +39,14 @@ public class LassoLinearRegressionMapper extends
     String modelPath = conf.get("model.path");
 
     if (this.featureDimension <= LinearRegressionModel.DIMENSION_THRESHOLD) {
-      this.weightUpdatesPositive = new DenseVector(this.featureDimension);
-      this.weightUpdatesNegative = new DenseVector(this.featureDimension);
+      this.weightUpdates = new DenseVector(this.featureDimension);
     } else {
-      this.weightUpdatesPositive = new RandomAccessSparseVector(this.featureDimension);
-      this.weightUpdatesNegative = new RandomAccessSparseVector(this.featureDimension);
+      this.weightUpdates = new RandomAccessSparseVector(this.featureDimension);
     }
 
     try { // load the model into memory
       model = new LinearRegressionModel(modelPath, conf);
+      model.setBiasWeight(0.0);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -57,49 +54,33 @@ public class LassoLinearRegressionMapper extends
 
   @Override
   /**
-   * Train the model with full-batch stochastic regression.
+   * Train the model with full-batch greedy coordinate regression.
+   * The last dimension of the value is the label.
    */
   public void map(NullWritable key, VectorWritable value, Context context) throws IOException {
     ++count;
     Vector vec = value.get();
     double expected = vec.get(featureDimension);
     double actual = model.predict(vec).get(0);
-
+    
     // compute local d_{e_k} f(w) and d_{-e_k} f(w)
-    for (int i = 0; i < weightUpdatesPositive.size(); ++i) {
+    for (int i = 0; i < weightUpdates.size(); ++i) {
       double xi = vec.get(i);
-      double wpos = weightUpdatesPositive.getQuick(i);
-      double wneg = weightUpdatesNegative.getQuick(i);
-      if (expected - actual > Constants.EPSILON) {
-        weightUpdatesPositive.set(i, wpos - xi);
-        weightUpdatesNegative.set(i, wneg + xi);
-      }
-      else if (expected - actual < -Constants.EPSILON) {
-        weightUpdatesPositive.set(i, wpos + xi);
-        weightUpdatesNegative.set(i, wneg - xi);
-      }
-      else {
-        double absXi = Math.abs(xi);
-        weightUpdatesPositive.set(i, wpos + absXi);
-        weightUpdatesNegative.set(i, wneg + absXi);
-      }
+      
+      double w = weightUpdates.getQuick(i);
+      weightUpdates.setQuick(i, w - (expected - actual) * xi);
     }
+
   }
 
   /**
-   * Write local updates to reducer. Local update: \delta w = learningRate *
-   * \frac{1}{count} \sigma_{count} (y - t) * x
+   * Write local updates to reducer. 
    */
   public void cleanup(Context context) throws IOException, InterruptedException {
     // the output vector does not contains the bias
-    IntWritable weightUpdatesPositiveKey = new IntWritable(1); // false denotes the positive
-    IntWritable weightUpdatesNegativeKey = new IntWritable(0);  // true denotes the negative
     LongWritable countWritable = new LongWritable(count);
-    
-    PairWritable positivePair = new PairWritable(countWritable, new VectorWritable(this.weightUpdatesPositive));
-    PairWritable negativePair = new PairWritable(countWritable, new VectorWritable(this.weightUpdatesNegative));
-    context.write(weightUpdatesPositiveKey, positivePair);
-    context.write(weightUpdatesNegativeKey, negativePair);
+    VectorWritable vecWrtiable = new VectorWritable(this.weightUpdates);
+    context.write(NullWritable.get(), new PairWritable(countWritable, vecWrtiable));
   }
 
 }

@@ -1,6 +1,6 @@
 package edu.fiu.cs.bigmining.mapreduce.linearregression.lasso;
 
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.util.ToolRunner;
@@ -23,7 +23,7 @@ public class LassoLinearRegressionDriver extends LinearRegressionDriver {
   public static void main(String[] args) throws Exception {
     int exit = ToolRunner.run(new LassoLinearRegressionDriver(LassoLinearRegressionDriver.class,
         LassoLinearRegressionMapper.class, LassoLinearRegressionReducer.class,
-        IntWritable.class, PairWritable.class), args);
+        NullWritable.class, PairWritable.class), args);
     System.exit(exit);
   }
 
