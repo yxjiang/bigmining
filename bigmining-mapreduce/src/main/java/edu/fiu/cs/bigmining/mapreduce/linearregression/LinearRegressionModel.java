@@ -97,6 +97,10 @@ public class LinearRegressionModel extends PredictiveModel implements Writable {
   public Vector getFeatureWeights() {
     return this.features;
   }
+  
+  public int getFeatureDimension() {
+    return this.features.size();
+  }
 
   /**
    * Set the weight of a specific index, starting from 0 and bias is excluded.

@@ -11,6 +11,7 @@ import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.VectorWritable;
+import org.apache.mahout.math.jet.math.Constants;
 
 import edu.fiu.cs.bigmining.mapreduce.linearregression.LinearRegressionModel;
 import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
@@ -21,6 +22,8 @@ import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
  */
 public class LassoLinearRegressionMapper extends
     Mapper<NullWritable, VectorWritable, NullWritable, PairWritable> {
+  
+  private static final double EPSILON = Constants.EPSILON * 10000;
 
   /* a sparse vector contains the weight updates */
   private long count;
@@ -39,14 +42,13 @@ public class LassoLinearRegressionMapper extends
     String modelPath = conf.get("model.path");
 
     if (this.featureDimension <= LinearRegressionModel.DIMENSION_THRESHOLD) {
-      this.weightUpdates = new DenseVector(this.featureDimension);
+      this.weightUpdates = new DenseVector(this.featureDimension + 1);
     } else {
-      this.weightUpdates = new RandomAccessSparseVector(this.featureDimension);
+      this.weightUpdates = new RandomAccessSparseVector(this.featureDimension + 1);
     }
 
     try { // load the model into memory
       model = new LinearRegressionModel(modelPath, conf);
-      model.setBiasWeight(0.0);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -63,8 +65,11 @@ public class LassoLinearRegressionMapper extends
     double expected = vec.get(featureDimension);
     double actual = model.predict(vec).get(0);
     
+    // update bias
+    weightUpdates.setQuick(0, weightUpdates.getQuick(0) - (expected - actual));
+    
     // compute local d_{e_k} f(w) and d_{-e_k} f(w)
-    for (int i = 0; i < weightUpdates.size(); ++i) {
+    for (int i = 1; i < weightUpdates.size(); ++i) {
       double xi = vec.get(i);
       
       double w = weightUpdates.getQuick(i);

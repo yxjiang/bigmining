@@ -17,6 +17,8 @@ import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 public class LassoLinearRegressionReducer extends
     Reducer<NullWritable, PairWritable, NullWritable, NullWritable> {
 
+  private static final double EPSILON = Constants.EPSILON * 10000;
+  
   private double learningRate;
   private double regularizationRate;
   private int featureDimension;
@@ -81,13 +83,19 @@ public class LassoLinearRegressionReducer extends
     this.globalUpdatesNegative = this.globalUpdatesNegative.divide(count);
     
     for (int i = 0; i < this.globalUpdatesPositive.size(); ++i) {
-      double weightI = this.model.getFeatureWeight(i);
+      double weight = 0;
+      if (i == 0) {
+        weight = this.model.getBias();
+      }
+      else {
+        weight = this.model.getFeatureWeight(i);
+      }
       
-      if (weightI > Constants.EPSILON) { // w_i is positive
+      if (weight >= EPSILON) { // w_i is positive
         this.globalUpdatesPositive.set(i, this.globalUpdatesPositive.get(i) + this.regularizationRate);
         this.globalUpdatesNegative.set(i, this.globalUpdatesNegative.get(i) - this.regularizationRate);
       }
-      else if (weightI >= -Constants.EPSILON && weightI <= -Constants.EPSILON){ // w_i is 0
+      else if (-EPSILON < weight && weight < EPSILON){ // w_i is 0
         this.globalUpdatesPositive.set(i, this.globalUpdatesPositive.get(i) + this.regularizationRate);
         this.globalUpdatesNegative.set(i, this.globalUpdatesNegative.get(i) + this.regularizationRate);
       }
@@ -106,8 +114,23 @@ public class LassoLinearRegressionReducer extends
     
     if (candidateIndex != -1) {
       double delta = this.learningRate * mostNegative;
-      model.updateWeight(candidateIndex, delta);
-      model.setBiasWeight(0.0);
+      if (candidateIndex == 0) {
+        model.setBiasWeight(model.getBias() + delta);
+      }
+      else {
+        model.updateWeight(candidateIndex, delta);
+      }
+      
+      if (model.getBias() < EPSILON) {
+        model.setBiasWeight(0.0);
+      }
+      
+      for (int i = 0; i < model.getFeatureDimension(); ++i) {
+        if (model.getFeatureWeight(i) < EPSILON) {
+          model.setWeight(i, 0.0);
+        }
+      }
+      
       try {
         model.writeToFile(modelPath, context.getConfiguration());
       } catch (IOException e) {
