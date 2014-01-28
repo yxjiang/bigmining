@@ -23,7 +23,7 @@ import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 public class LassoLinearRegressionMapper extends
     Mapper<NullWritable, VectorWritable, NullWritable, PairWritable> {
   
-  private static final double EPSILON = Constants.EPSILON * 10000;
+  private static final double EPSILON = Constants.EPSILON * 100;
 
   /* a sparse vector contains the weight updates */
   private long count;

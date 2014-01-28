@@ -17,7 +17,7 @@ import edu.fiu.cs.bigmining.mapreduce.util.PairWritable;
 public class LassoLinearRegressionReducer extends
     Reducer<NullWritable, PairWritable, NullWritable, NullWritable> {
 
-  private static final double EPSILON = Constants.EPSILON * 10000;
+  private static final double EPSILON = Constants.EPSILON * 100;
   
   private double learningRate;
   private double regularizationRate;
