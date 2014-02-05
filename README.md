@@ -7,5 +7,5 @@
 
 ## Implemented Algorithms
 ### Hadoop Mapreduce
-#### Ridge Regression
-#### Lasso Regression
+#### Ridge Regression trained by coordinate descent
+#### Lasso Regression trained by gradient descent
