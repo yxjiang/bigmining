@@ -11,7 +11,17 @@ public class MM2PhaseTwoReducer extends
 		Reducer<IntWritable, VectorWritable, IntWritable, VectorWritable> {
 
 	private Vector rowSum = null;
+//	private int rowNumOfA;
+//	
+//
+//	@Override
+//	protected void setup(Context context)
+//			throws IOException, InterruptedException {
+//		// TODO Auto-generated method stub
+//		rowNumOfA = Integer.parseInt(context.getConfiguration().get("A.row.num"));
+//	}
 
+	
 	@Override
 	protected void reduce(IntWritable key, Iterable<VectorWritable> values,
 			Context context) throws IOException, InterruptedException {
@@ -26,5 +36,5 @@ public class MM2PhaseTwoReducer extends
 		
 		context.write(key, new VectorWritable(rowSum));
 	}
-
+	
 }
