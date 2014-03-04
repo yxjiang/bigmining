@@ -1,6 +1,7 @@
 package edu.fiu.cs.bigmining.mapreduce.linearregression;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 
 import org.apache.commons.cli2.CommandLine;
@@ -13,6 +14,7 @@ import org.apache.commons.cli2.commandline.Parser;
 import org.apache.commons.cli2.util.HelpFormatter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
@@ -166,8 +168,16 @@ public abstract class LinearRegressionDriver extends Configured implements Tool 
 
     initializeModel();
 
+    
+
     Path trainingDataPath = new Path(this.trainingDataPath);
     LinearRegressionModel prevModel = null;
+    
+    FileSystem fs = FileSystem.get(new URI(this.trainingDataPath), conf);
+    if (fs.exists(trainingDataPath)) {
+      fs.delete(trainingDataPath, true);
+    }
+    
 
     int curIteration = 0;
     // loop until model converges or exceeds maximal iteration
